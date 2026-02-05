@@ -12,6 +12,7 @@ import EmbedCode from '../components/EmbedCode'
 import TemplateSelector from '../components/TemplateSelector'
 import AssetLibrary from '../components/AssetLibrary'
 import ComponentPools from '../components/ComponentPools'
+import VariantGrid from '../components/VariantGrid'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -428,6 +429,16 @@ export default function CampaignDetail() {
                 )}
               </div>
             </div>
+
+            {/* Variant Preview Grid */}
+            {campaign.variants?.length > 0 && (
+              <div>
+                <VariantGrid 
+                  campaignId={id}
+                  variants={campaign.variants}
+                />
+              </div>
+            )}
 
             {/* Asset Library */}
             <div>
