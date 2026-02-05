@@ -1,6 +1,9 @@
 import { supabase } from './supabase'
 
-const API_URL = '/api'
+// In production, use the API URL from env; in dev, use proxy
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
 
 async function fetchWithAuth(url, options = {}) {
   const { data: { session } } = await supabase.auth.getSession()

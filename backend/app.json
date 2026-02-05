@@ -1,0 +1,29 @@
+{
+  "name": "souts-dco-api",
+  "description": "SOUTS DCO - Dynamic Creative Optimization API",
+  "repository": "https://github.com/yvesfogel/souts-dco",
+  "keywords": ["python", "fastapi", "dco", "advertising"],
+  "env": {
+    "SUPABASE_URL": {
+      "description": "Supabase project URL",
+      "required": true
+    },
+    "SUPABASE_ANON_KEY": {
+      "description": "Supabase anon/public key",
+      "required": true
+    },
+    "SUPABASE_SERVICE_KEY": {
+      "description": "Supabase service role key (secret)",
+      "required": true
+    },
+    "WEATHER_API_KEY": {
+      "description": "OpenWeatherMap API key (optional)",
+      "required": false
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}

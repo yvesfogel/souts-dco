@@ -12,10 +12,22 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS
+# CORS - allow frontend origins
+import os
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    FRONTEND_URL,
+]
+# Also allow any vercel.app subdomain
+if ".vercel.app" not in FRONTEND_URL:
+    ALLOWED_ORIGINS.append("https://*.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite dev + prod
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel preview deploys
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
