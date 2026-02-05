@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, TrendingUp, Globe, Sun, Cloud } from 'lucide-react'
+import { BarChart3, TrendingUp, Globe, Sun, Cloud, MousePointer } from 'lucide-react'
 
 export default function Analytics({ campaignId }) {
   const [stats, setStats] = useState(null)
@@ -61,18 +61,30 @@ export default function Analytics({ campaignId }) {
       </div>
 
       {/* Overview */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-indigo-50 rounded-lg p-4">
-          <div className="text-3xl font-bold text-indigo-600">
+          <div className="text-2xl font-bold text-indigo-600">
             {stats.total_impressions.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-600">Total Impressions</div>
+          <div className="text-xs text-gray-600">Impressions</div>
+        </div>
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="text-2xl font-bold text-blue-600">
+            {(stats.total_clicks || 0).toLocaleString()}
+          </div>
+          <div className="text-xs text-gray-600">Clicks</div>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
-          <div className="text-3xl font-bold text-green-600">
+          <div className="text-2xl font-bold text-green-600">
+            {stats.ctr || 0}%
+          </div>
+          <div className="text-xs text-gray-600">CTR</div>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="text-2xl font-bold text-purple-600">
             {stats.variants?.length || 0}
           </div>
-          <div className="text-sm text-gray-600">Active Variants</div>
+          <div className="text-xs text-gray-600">Variants</div>
         </div>
       </div>
 
@@ -95,8 +107,11 @@ export default function Analytics({ campaignId }) {
                 <div className="w-16 text-sm text-right text-gray-600">
                   {variant.impressions.toLocaleString()}
                 </div>
-                <div className="w-12 text-sm text-right text-gray-400">
-                  {variant.percentage}%
+                <div className="w-12 text-sm text-right text-blue-600" title="Clicks">
+                  {(variant.clicks || 0).toLocaleString()}
+                </div>
+                <div className="w-14 text-sm text-right text-green-600" title="CTR">
+                  {variant.ctr || 0}%
                 </div>
               </div>
             ))}

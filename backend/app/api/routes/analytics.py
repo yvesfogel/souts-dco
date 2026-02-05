@@ -1,5 +1,6 @@
 """Analytics routes for tracking and reporting."""
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import RedirectResponse
 from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
@@ -13,6 +14,66 @@ router = APIRouter()
 def hash_ip(ip: str) -> str:
     """Hash IP for privacy."""
     return hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from request."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+
+@router.get("/click/{campaign_id}/{variant_id}")
+async def track_click(
+    campaign_id: str,
+    variant_id: str,
+    url: str,
+    request: Request,
+):
+    """Track a click and redirect to the target URL."""
+    supabase = get_supabase_admin()
+    
+    ip = get_client_ip(request)
+    
+    try:
+        supabase.table("clicks").insert({
+            "campaign_id": campaign_id,
+            "variant_id": variant_id,
+            "url": url,
+            "ip_hash": hash_ip(ip),
+            "user_agent": request.headers.get("user-agent", ""),
+        }).execute()
+    except Exception:
+        pass  # Don't fail redirect if tracking fails
+    
+    # Redirect to target URL
+    return RedirectResponse(url=url, status_code=302)
+
+
+@router.post("/click")
+async def track_click_post(
+    campaign_id: str,
+    variant_id: str,
+    url: str,
+    request: Request,
+):
+    """Track a click (POST version, for AJAX)."""
+    supabase = get_supabase_admin()
+    
+    ip = get_client_ip(request)
+    
+    try:
+        supabase.table("clicks").insert({
+            "campaign_id": campaign_id,
+            "variant_id": variant_id,
+            "url": url,
+            "ip_hash": hash_ip(ip),
+            "user_agent": request.headers.get("user-agent", ""),
+        }).execute()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 @router.post("/impression")
@@ -50,7 +111,7 @@ async def get_campaign_stats(
     days: int = 7,
     user=Depends(get_current_user)
 ):
-    """Get campaign analytics."""
+    """Get campaign analytics with clicks and CTR."""
     supabase = get_supabase_admin()
     
     # Verify campaign ownership
@@ -72,6 +133,13 @@ async def get_campaign_stats(
         "created_at", start_date.isoformat()
     ).execute()
     
+    # Get clicks
+    clicks = supabase.table("clicks").select(
+        "id, variant_id, created_at"
+    ).eq("campaign_id", campaign_id).gte(
+        "created_at", start_date.isoformat()
+    ).execute()
+    
     # Get variants for names
     variants = supabase.table("variants").select("id, name").eq(
         "campaign_id", campaign_id
@@ -79,8 +147,10 @@ async def get_campaign_stats(
     variant_map = {v["id"]: v["name"] for v in variants.data}
     
     # Aggregate by variant
-    variant_stats = {}
+    variant_impressions = {}
+    variant_clicks = {}
     daily_stats = {}
+    daily_clicks = {}
     signal_stats = {
         "countries": {},
         "dayparts": {},
@@ -89,13 +159,13 @@ async def get_campaign_stats(
     
     for imp in impressions.data:
         vid = imp["variant_id"]
-        variant_stats[vid] = variant_stats.get(vid, 0) + 1
+        variant_impressions[vid] = variant_impressions.get(vid, 0) + 1
         
         # Daily breakdown
         day = imp["created_at"][:10]
         if day not in daily_stats:
-            daily_stats[day] = {}
-        daily_stats[day][vid] = daily_stats[day].get(vid, 0) + 1
+            daily_stats[day] = {"impressions": {}, "clicks": {}}
+        daily_stats[day]["impressions"][vid] = daily_stats[day]["impressions"].get(vid, 0) + 1
         
         # Signal breakdown
         signals = imp.get("signals", {})
@@ -109,27 +179,48 @@ async def get_campaign_stats(
             weather = signals.get("weather_condition", "Unknown")
             signal_stats["weather"][weather] = signal_stats["weather"].get(weather, 0) + 1
     
+    for click in clicks.data:
+        vid = click["variant_id"]
+        variant_clicks[vid] = variant_clicks.get(vid, 0) + 1
+        
+        # Daily clicks
+        day = click["created_at"][:10]
+        if day not in daily_stats:
+            daily_stats[day] = {"impressions": {}, "clicks": {}}
+        daily_stats[day]["clicks"][vid] = daily_stats[day]["clicks"].get(vid, 0) + 1
+    
     # Format response
     total_impressions = len(impressions.data)
+    total_clicks = len(clicks.data)
+    overall_ctr = round((total_clicks / total_impressions * 100), 2) if total_impressions > 0 else 0
     
-    variants_breakdown = [
-        {
+    variants_breakdown = []
+    for vid in set(list(variant_impressions.keys()) + list(variant_clicks.keys())):
+        imps = variant_impressions.get(vid, 0)
+        clks = variant_clicks.get(vid, 0)
+        ctr = round((clks / imps * 100), 2) if imps > 0 else 0
+        variants_breakdown.append({
             "variant_id": vid,
             "variant_name": variant_map.get(vid, "Unknown"),
-            "impressions": count,
-            "percentage": round(count / total_impressions * 100, 1) if total_impressions > 0 else 0,
-        }
-        for vid, count in sorted(variant_stats.items(), key=lambda x: x[1], reverse=True)
-    ]
+            "impressions": imps,
+            "clicks": clks,
+            "ctr": ctr,
+            "percentage": round(imps / total_impressions * 100, 1) if total_impressions > 0 else 0,
+        })
     
-    daily_breakdown = [
-        {
+    variants_breakdown.sort(key=lambda x: x["impressions"], reverse=True)
+    
+    daily_breakdown = []
+    for day, data in sorted(daily_stats.items()):
+        day_imps = sum(data["impressions"].values())
+        day_clicks = sum(data["clicks"].values())
+        daily_breakdown.append({
             "date": day,
-            "total": sum(variants.values()),
-            "by_variant": {variant_map.get(vid, vid): count for vid, count in variants.items()}
-        }
-        for day, variants in sorted(daily_stats.items())
-    ]
+            "impressions": day_imps,
+            "clicks": day_clicks,
+            "ctr": round((day_clicks / day_imps * 100), 2) if day_imps > 0 else 0,
+            "by_variant": {variant_map.get(vid, vid): count for vid, count in data["impressions"].items()}
+        })
     
     return {
         "campaign_id": campaign_id,
@@ -140,6 +231,8 @@ async def get_campaign_stats(
             "days": days,
         },
         "total_impressions": total_impressions,
+        "total_clicks": total_clicks,
+        "ctr": overall_ctr,
         "variants": variants_breakdown,
         "daily": daily_breakdown,
         "signals": {

@@ -86,10 +86,24 @@ def get_template_css(width: Optional[int] = None, height: Optional[int] = None) 
     """
 
 
+def get_click_url(campaign: dict, variant: dict) -> str:
+    """Generate click tracking URL."""
+    original_url = variant.get("cta_url", "#")
+    campaign_id = campaign.get("id", "")
+    variant_id = variant.get("id", "")
+    
+    # Encode the original URL
+    from urllib.parse import quote
+    encoded_url = quote(original_url, safe='')
+    
+    return f"/api/analytics/click/{campaign_id}/{variant_id}?url={encoded_url}"
+
+
 def render_default(variant: dict, campaign: dict, width: Optional[int], height: Optional[int]) -> str:
     """Default template - versatile layout."""
     image_html = f'<img class="ad-image" src="{variant.get("image_url")}" alt="" loading="lazy">' if variant.get("image_url") else ''
     body_html = f'<p class="ad-body">{variant.get("body_text")}</p>' if variant.get("body_text") else ''
+    click_url = get_click_url(campaign, variant)
     
     return f"""<!DOCTYPE html>
 <html>
@@ -103,7 +117,7 @@ def render_default(variant: dict, campaign: dict, width: Optional[int], height: 
         {image_html}
         <h1 class="ad-headline">{variant.get("headline", "")}</h1>
         {body_html}
-        <a class="ad-cta" href="{variant.get("cta_url", "#")}" target="_blank">{variant.get("cta_text", "Learn More")}</a>
+        <a class="ad-cta" href="{click_url}" target="_blank">{variant.get("cta_text", "Learn More")}</a>
     </div>
 </body>
 </html>"""
@@ -111,6 +125,7 @@ def render_default(variant: dict, campaign: dict, width: Optional[int], height: 
 
 def render_minimal(variant: dict, campaign: dict, width: Optional[int], height: Optional[int]) -> str:
     """Minimal template - headline and CTA only."""
+    click_url = get_click_url(campaign, variant)
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -143,6 +158,7 @@ def render_minimal(variant: dict, campaign: dict, width: Optional[int], height: 
 def render_hero(variant: dict, campaign: dict, width: Optional[int], height: Optional[int]) -> str:
     """Hero template - large background image with overlay."""
     bg_style = f'background-image: url({variant.get("image_url")});' if variant.get("image_url") else ''
+    click_url = get_click_url(campaign, variant)
     
     return f"""<!DOCTYPE html>
 <html>
@@ -179,6 +195,7 @@ def render_hero(variant: dict, campaign: dict, width: Optional[int], height: Opt
 def render_split(variant: dict, campaign: dict, width: Optional[int], height: Optional[int]) -> str:
     """Split template - image left, text right."""
     image_html = f'<img src="{variant.get("image_url")}" alt="" style="width:100%;height:100%;object-fit:cover;">' if variant.get("image_url") else '<div style="background:#667eea;width:100%;height:100%;"></div>'
+    click_url = get_click_url(campaign, variant)
     
     return f"""<!DOCTYPE html>
 <html>
@@ -249,6 +266,7 @@ def render_split(variant: dict, campaign: dict, width: Optional[int], height: Op
 def render_banner(variant: dict, campaign: dict, width: Optional[int], height: Optional[int]) -> str:
     """Banner template - horizontal layout for leaderboard/banner sizes."""
     image_html = f'<img src="{variant.get("image_url")}" alt="" style="height:100%;width:auto;max-width:120px;object-fit:contain;margin-right:16px;">' if variant.get("image_url") else ''
+    click_url = get_click_url(campaign, variant)
     
     return f"""<!DOCTYPE html>
 <html>
