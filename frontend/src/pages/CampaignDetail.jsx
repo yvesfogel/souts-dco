@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, Save, ChevronDown, ChevronUp } from 'lucide-re
 import { api } from '../lib/api'
 import SignalSimulator from '../components/SignalSimulator'
 import RulesBuilder from '../components/RulesBuilder'
+import Analytics from '../components/Analytics'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -157,6 +158,11 @@ export default function CampaignDetail() {
           {showSimulator && (
             <SignalSimulator campaignId={id} />
           )}
+        </div>
+
+        {/* Analytics */}
+        <div className="mb-8">
+          <Analytics campaignId={id} />
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">

@@ -1,12 +1,32 @@
 """Ad serving routes - the core DCO endpoint."""
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
+import hashlib
 
 from app.services.supabase import get_supabase_admin
 from app.services.decisioning import select_variant
 from app.services.signals import get_geo_signals, get_weather_signals, get_daypart_signals
 
 router = APIRouter()
+
+
+def hash_ip(ip: str) -> str:
+    """Hash IP for privacy."""
+    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+
+async def track_impression(campaign_id: str, variant_id: str, signals: dict, ip: str):
+    """Track impression in background."""
+    try:
+        supabase = get_supabase_admin()
+        supabase.table("impressions").insert({
+            "campaign_id": campaign_id,
+            "variant_id": variant_id,
+            "signals": signals,
+            "ip_hash": hash_ip(ip),
+        }).execute()
+    except Exception:
+        pass  # Don't fail ad serving if tracking fails
 
 
 def get_client_ip(request: Request) -> str:
@@ -105,7 +125,7 @@ def render_ad_html(variant: dict, campaign: dict) -> str:
 
 
 @router.get("/{campaign_id}")
-async def serve_ad(campaign_id: str, request: Request, format: str = "html"):
+async def serve_ad(campaign_id: str, request: Request, background_tasks: BackgroundTasks, format: str = "html", track: bool = True):
     """
     Serve a personalized ad based on signals.
     
@@ -132,6 +152,11 @@ async def serve_ad(campaign_id: str, request: Request, format: str = "html"):
     
     if not variant:
         raise HTTPException(status_code=404, detail="No matching variant found")
+    
+    # Track impression in background
+    if track:
+        ip = get_client_ip(request)
+        background_tasks.add_task(track_impression, campaign_id, variant["id"], signals, ip)
     
     # Return based on format
     if format == "json":

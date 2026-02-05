@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api.routes import auth, campaigns, assets, ads
+from app.api.routes import auth, campaigns, assets, ads, analytics
 
 settings = get_settings()
 
@@ -26,6 +26,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(campaigns.router, prefix="/api/campaigns", tags=["campaigns"])
 app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
 app.include_router(ads.router, prefix="/ad", tags=["ads"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 
 
 @app.get("/health")
