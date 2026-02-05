@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import CampaignDetail from './pages/CampaignDetail'
+import AdBuilderPage from './pages/AdBuilderPage'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -48,6 +49,14 @@ function App() {
       <Route 
         path="/campaigns/:id" 
         element={session ? <CampaignDetail session={session} /> : <Navigate to="/login" />} 
+      />
+      <Route 
+        path="/campaigns/:id/builder" 
+        element={session ? <AdBuilderPage /> : <Navigate to="/login" />} 
+      />
+      <Route 
+        path="/campaigns/:id/variants/:variantId/builder" 
+        element={session ? <AdBuilderPage /> : <Navigate to="/login" />} 
       />
     </Routes>
   )
