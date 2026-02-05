@@ -1,6 +1,7 @@
 """Ad serving routes - the core DCO endpoint."""
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
+from datetime import datetime, timezone
 import hashlib
 
 from app.services.supabase import get_supabase_admin
@@ -27,6 +28,30 @@ async def track_impression(campaign_id: str, variant_id: str, signals: dict, ip:
         }).execute()
     except Exception:
         pass  # Don't fail ad serving if tracking fails
+
+
+def is_campaign_scheduled(campaign: dict) -> bool:
+    """Check if campaign is within its scheduled dates."""
+    now = datetime.now(timezone.utc)
+    
+    start_date = campaign.get("start_date")
+    end_date = campaign.get("end_date")
+    
+    # Parse dates if they're strings
+    if start_date and isinstance(start_date, str):
+        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    if end_date and isinstance(end_date, str):
+        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    
+    # Check start date
+    if start_date and now < start_date:
+        return False
+    
+    # Check end date
+    if end_date and now > end_date:
+        return False
+    
+    return True
 
 
 def get_client_ip(request: Request) -> str:
@@ -143,6 +168,10 @@ async def serve_ad(campaign_id: str, request: Request, background_tasks: Backgro
         raise HTTPException(status_code=404, detail="Campaign not found or inactive")
     
     campaign = campaign_result.data
+    
+    # Check scheduling
+    if not is_campaign_scheduled(campaign):
+        raise HTTPException(status_code=404, detail="Campaign not currently scheduled")
     
     # Collect signals
     signals = await collect_signals(request)

@@ -6,6 +6,7 @@ import SignalSimulator from '../components/SignalSimulator'
 import RulesBuilder from '../components/RulesBuilder'
 import Analytics from '../components/Analytics'
 import ABTestConfig from '../components/ABTestConfig'
+import Scheduling from '../components/Scheduling'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -235,6 +236,15 @@ export default function CampaignDetail() {
               }}
               onUpdateVariant={async (variantId, data) => {
                 await api.updateVariant(id, variantId, data)
+                loadCampaign()
+              }}
+            />
+
+            {/* Scheduling */}
+            <Scheduling
+              campaign={campaign}
+              onUpdate={async (data) => {
+                await api.updateCampaign(id, data)
                 loadCampaign()
               }}
             />

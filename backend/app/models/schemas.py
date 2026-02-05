@@ -28,6 +28,8 @@ class CampaignCreate(BaseModel):
     template: str = "default"
     settings: Optional[dict] = None
     ab_test_mode: str = "rules"  # 'rules', 'weights', 'off'
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 
 class CampaignUpdate(BaseModel):
@@ -37,6 +39,8 @@ class CampaignUpdate(BaseModel):
     settings: Optional[dict] = None
     active: Optional[bool] = None
     ab_test_mode: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 
 class Campaign(BaseModel):
