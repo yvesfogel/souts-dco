@@ -11,6 +11,7 @@ import Scheduling from '../components/Scheduling'
 import EmbedCode from '../components/EmbedCode'
 import TemplateSelector from '../components/TemplateSelector'
 import AssetLibrary from '../components/AssetLibrary'
+import ComponentPools from '../components/ComponentPools'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -272,6 +273,14 @@ export default function CampaignDetail() {
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Component Pools - DCO Core */}
+            <div>
+              <ComponentPools 
+                campaignId={id} 
+                onGenerate={loadCampaign}
+              />
+            </div>
+
             {/* Variants */}
             <div>
               <div className="flex items-center justify-between mb-4">
