@@ -8,9 +8,18 @@
 3. Guardar las credenciales que te da
 
 ### 2. Configurar Base de Datos
-1. En Supabase Dashboard → SQL Editor
-2. Copiar contenido de `supabase/migrations/001_initial.sql`
-3. Ejecutar (crea tablas, índices, RLS policies)
+En Supabase Dashboard → SQL Editor, ejecutar EN ORDEN:
+
+```sql
+-- 1. Primero el schema inicial
+-- Copiar contenido de: supabase/migrations/001_initial.sql
+
+-- 2. Luego A/B Testing
+-- Copiar contenido de: supabase/migrations/002_ab_testing.sql
+
+-- 3. Luego Scheduling
+-- Copiar contenido de: supabase/migrations/003_scheduling.sql
+```
 
 ### 3. Crear Storage Bucket
 1. En Supabase Dashboard → Storage
@@ -84,7 +93,7 @@ npm run dev
 
 ---
 
-## 📋 Features implementadas
+## 📋 Features Implementadas
 
 ### ✅ Auth (Supabase Auth)
 - Signup/Login con email + password
@@ -111,30 +120,86 @@ npm run dev
 - **Probar**: En campaña con variantes, sección "Rules"
 
 ### ✅ Signal Simulator
-- Simular diferentes condiciones
+- Simular diferentes condiciones sin tráfico real
 - Seleccionar país, clima, temperatura, hora
-- Ver qué variante se muestra
+- Ver qué variante se muestra con esas condiciones
 - Preview del ad en iframe
 - **Probar**: Panel colapsable arriba de la campaña
+
+### ✅ Analytics Dashboard
+- Impresiones totales y por variante
+- Gráfico de tendencia diaria
+- Breakdown por país, daypart, clima
+- Filtro por período (7/14/30 días)
+- **Probar**: Panel "Analytics" en la campaña
+
+### ✅ A/B Testing
+- Tres modos: Rules+Weights, Pure A/B, Off
+- Weights configurables por variante (0-100)
+- Distribución visual del tráfico
+- **Probar**: Panel "A/B Testing" en sidebar
+
+### ✅ Campaign Scheduling
+- Fecha/hora de inicio y fin
+- Status indicator: Live, Scheduled, Ended
+- Ads no se sirven fuera del schedule
+- **Probar**: Panel "Scheduling" en sidebar
+
+### ✅ Multi-Template System
+- 5 templates: Default, Minimal, Hero, Split, Banner
+- Responsive (adaptan a cualquier tamaño)
+- Selección por campaña
+- **Probar**: Panel "Template" en sidebar
+
+### ✅ Embed Code Generator
+- Tamaños IAB estándar (300x250, 728x90, etc.)
+- Tamaño custom
+- 3 formatos: iframe, JavaScript, responsive
+- Preview en vivo
+- Copy to clipboard
+- **Probar**: Sección "Embed Code" al final de la campaña
 
 ### ✅ Ad Serving
 - `GET /ad/{campaign_id}` → HTML personalizado
 - `GET /ad/{campaign_id}?format=json` → JSON con signals
+- `GET /ad/{campaign_id}?template=hero&width=300` → Template específico
 - `GET /ad/{campaign_id}/debug` → Debug info
 - `GET /ad/{campaign_id}/simulate?signal_*=*` → Simular signals
+- `GET /ad/templates` → Listar templates disponibles
 - **Probar**: Copiar "Ad URL" de la campaña y abrir en browser
 
 ### ✅ Asset Upload
 - Subir imágenes a Supabase Storage
 - Tipos: JPEG, PNG, GIF, WebP
 - Máximo 10MB
-- **Probar**: (UI pendiente, funciona vía API)
+- **Probar**: Funciona vía API (UI de upload pendiente)
 
 ---
 
-## 🔜 Features pendientes de probar
+## 🔜 Features para el Futuro
 
-(Se irán agregando aquí a medida que las implemente)
+- [ ] Bulk asset upload (drag & drop múltiples)
+- [ ] Dashboard overview de todas las campañas
+- [ ] Export/Import de campañas
+- [ ] API Keys para integración externa
+- [ ] Video DCO con Remotion (research en /research/remotion-video-dco.md)
+- [ ] AI Creative Generation
+
+---
+
+## 🗄️ Migrations
+
+Si ya tenías la DB creada, correr las nuevas migrations:
+
+```sql
+-- 002_ab_testing.sql
+ALTER TABLE variants ADD COLUMN IF NOT EXISTS weight INTEGER DEFAULT 100;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS ab_test_mode VARCHAR(20) DEFAULT 'rules';
+
+-- 003_scheduling.sql
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+```
 
 ---
 
@@ -146,15 +211,24 @@ npm run dev
 
 ### "relation does not exist"
 - No corriste la migration SQL
-- Ir a SQL Editor y ejecutar `001_initial.sql`
+- Ir a SQL Editor y ejecutar las migrations en orden
 
 ### "Bucket not found"
 - Crear bucket `assets` en Storage
 - Verificar que está marcado como Public
 
+### "column does not exist"
+- Faltan las nuevas migrations (002, 003)
+- Correr los ALTER TABLE del migration correspondiente
+
 ### CORS errors
 - El backend ya tiene CORS configurado para localhost:5173
 - Si usás otro puerto, agregar a `main.py`
+
+### Ad no se muestra
+- Verificar que la campaña está "Active"
+- Verificar scheduling (start_date/end_date)
+- Verificar que hay al menos una variante
 
 ---
 
@@ -163,3 +237,5 @@ npm run dev
 - Los passwords de usuarios se manejan en Supabase Auth (no en nuestra DB)
 - Las API keys de Supabase son seguras de exponer en frontend (anon key tiene RLS)
 - El service_key es SECRETO, solo en backend
+- Los IPs se hashean para privacidad antes de guardar
+- Templates son responsive por defecto, usan CSS clamp()

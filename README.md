@@ -14,82 +14,80 @@ Serve personalized ad creatives based on real-time signals: **weather**, **locat
 
 - 🎯 **Signal-based decisioning**: Geo, weather, daypart signals
 - 📊 **Rules engine**: Define conditions to match variants
+- 🔀 **A/B Testing**: Traffic splitting with configurable weights
+- 📅 **Scheduling**: Start/end dates for campaigns
+- 🎨 **Multi-template**: 5 responsive ad templates
+- 📈 **Analytics**: Impressions, daily trends, signal breakdown
 - 🖼️ **Multi-variant campaigns**: Multiple creatives per campaign
 - 🔐 **Authentication**: Supabase Auth
 - 📁 **Asset management**: Upload images to Supabase Storage
 - ⚡ **Fast serving**: <100ms ad delivery
+- 📋 **Embed codes**: Ready-to-use HTML/JS snippets
 
 ## Quick Start
 
-### 1. Setup Supabase
+See [SETUP.md](SETUP.md) for detailed instructions.
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run the migration in `supabase/migrations/001_initial.sql`
-3. Create a storage bucket named `assets` (public)
-4. Copy your project URL and keys
+### TL;DR
 
-### 2. Backend
+1. Create a [Supabase](https://supabase.com) project
+2. Run migrations from `supabase/migrations/`
+3. Create storage bucket `assets` (public)
+4. Configure `.env` files
+5. Run backend & frontend
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-
-# Create .env file
-cp ../.env.example .env
-# Edit .env with your Supabase credentials
-
-# Run
+# Backend
+cd backend && pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+# Frontend  
+cd frontend && npm install && npm run dev
 ```
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-
-# Create .env file
-cp .env.example .env
-# Edit .env with your Supabase credentials
-
-# Run
-npm run dev
-```
-
-### 4. Access
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
 
 ## Ad Serving
 
-Once you create a campaign with variants:
+```
+GET /ad/{campaign_id}                    # Personalized HTML
+GET /ad/{campaign_id}?format=json        # JSON with signals
+GET /ad/{campaign_id}?template=hero      # Specific template
+GET /ad/{campaign_id}/debug              # Debug signals
+GET /ad/{campaign_id}/simulate?signal_*  # Test with custom signals
+GET /ad/templates                        # List templates
+```
 
-```
-GET /ad/{campaign_id}         # Returns personalized HTML
-GET /ad/{campaign_id}?format=json  # Returns JSON with signals
-GET /ad/{campaign_id}/debug   # Debug signals & selected variant
-```
+## Templates
+
+| Template | Best For |
+|----------|----------|
+| `default` | All sizes, versatile |
+| `minimal` | Simple, clean ads |
+| `hero` | Large images, overlays |
+| `split` | Side-by-side layouts |
+| `banner` | Leaderboard/banner sizes |
 
 ## Signals
 
-| Signal | Description | Example Values |
-|--------|-------------|----------------|
-| `geo_country` | Country name | "United States" |
-| `geo_city` | City name | "New York" |
-| `weather_temp` | Temperature (°C) | 25 |
-| `weather_is_hot` | Temp >= 30°C | true/false |
-| `weather_is_cold` | Temp < 15°C | true/false |
-| `weather_is_rainy` | Rain/drizzle/storm | true/false |
-| `daypart` | Time of day | "morning", "afternoon", "evening", "night" |
-| `daypart_is_weekend` | Saturday/Sunday | true/false |
+| Signal | Description |
+|--------|-------------|
+| `geo_country` | Country name |
+| `geo_city` | City name |
+| `weather_temp` | Temperature (°C) |
+| `weather_is_hot` | Temp >= 30°C |
+| `weather_is_cold` | Temp < 15°C |
+| `weather_is_rainy` | Rain/drizzle/storm |
+| `daypart` | morning/afternoon/evening/night |
+| `daypart_is_weekend` | Saturday/Sunday |
+
+## A/B Testing Modes
+
+- **Rules + Weights**: Try rules first, fallback to weighted selection
+- **Pure A/B**: Ignore rules, split by weights only
+- **Off**: Always show default variant
 
 ## Rule Example
 
-Show "Summer Sale" variant when it's hot:
+Show "Summer Sale" variant when hot:
 
 ```json
 {
@@ -102,27 +100,17 @@ Show "Summer Sale" variant when it's hot:
 }
 ```
 
-## Environment Variables
+## Screenshots
 
-### Backend (.env)
-```
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_KEY=xxx
-WEATHER_API_KEY=xxx  # OpenWeatherMap
-```
+*(Coming soon)*
 
-### Frontend (.env)
-```
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=xxx
-```
+## Roadmap
 
-## Docker
-
-```bash
-docker-compose up --build
-```
+- [ ] Bulk asset upload
+- [ ] Dashboard overview
+- [ ] API keys for external integration
+- [ ] Video DCO with Remotion
+- [ ] AI creative generation
 
 ## License
 
