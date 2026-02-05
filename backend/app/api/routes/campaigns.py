@@ -90,6 +90,77 @@ async def delete_campaign(campaign_id: str, user=Depends(get_current_user)):
     return {"message": "Campaign deleted"}
 
 
+@router.post("/{campaign_id}/duplicate")
+async def duplicate_campaign(campaign_id: str, user=Depends(get_current_user)):
+    """Duplicate a campaign with all variants and rules."""
+    supabase = get_supabase_admin()
+    
+    # Get original campaign
+    original = supabase.table("campaigns").select("*").eq("id", campaign_id).eq("user_id", user.id).single().execute()
+    if not original.data:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Create new campaign
+    new_campaign_data = {
+        "user_id": user.id,
+        "name": f"{original.data['name']} (Copy)",
+        "description": original.data.get("description"),
+        "template": original.data.get("template", "default"),
+        "settings": original.data.get("settings", {}),
+        "ab_test_mode": original.data.get("ab_test_mode", "rules"),
+        "active": False,  # Start as inactive
+    }
+    
+    new_campaign = supabase.table("campaigns").insert(new_campaign_data).execute()
+    new_campaign_id = new_campaign.data[0]["id"]
+    
+    # Get and duplicate variants
+    variants = supabase.table("variants").select("*").eq("campaign_id", campaign_id).execute()
+    variant_id_map = {}  # old_id -> new_id
+    
+    for v in variants.data:
+        new_variant_data = {
+            "campaign_id": new_campaign_id,
+            "name": v["name"],
+            "headline": v["headline"],
+            "body_text": v.get("body_text"),
+            "cta_text": v.get("cta_text", "Learn More"),
+            "cta_url": v.get("cta_url", ""),
+            "image_url": v.get("image_url"),
+            "is_default": v.get("is_default", False),
+            "weight": v.get("weight", 100),
+            "settings": v.get("settings", {}),
+        }
+        new_variant = supabase.table("variants").insert(new_variant_data).execute()
+        variant_id_map[v["id"]] = new_variant.data[0]["id"]
+    
+    # Get and duplicate rules
+    rules = supabase.table("rules").select("*").eq("campaign_id", campaign_id).execute()
+    
+    for r in rules.data:
+        old_variant_id = r["variant_id"]
+        new_variant_id = variant_id_map.get(old_variant_id)
+        
+        if new_variant_id:
+            new_rule_data = {
+                "campaign_id": new_campaign_id,
+                "variant_id": new_variant_id,
+                "name": r["name"],
+                "conditions": r.get("conditions", []),
+                "logic": r.get("logic", "and"),
+                "priority": r.get("priority", 0),
+                "active": r.get("active", True),
+            }
+            supabase.table("rules").insert(new_rule_data).execute()
+    
+    return {
+        "message": "Campaign duplicated",
+        "new_campaign_id": new_campaign_id,
+        "variants_copied": len(variants.data),
+        "rules_copied": len(rules.data),
+    }
+
+
 # ============ VARIANTS ============
 
 @router.post("/{campaign_id}/variants")

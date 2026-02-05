@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, LogOut, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, LogOut, Trash2, ExternalLink, Copy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { api } from '../lib/api'
 
@@ -42,6 +42,16 @@ export default function Dashboard({ session }) {
     try {
       await api.deleteCampaign(id)
       loadCampaigns()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  const handleDuplicate = async (id) => {
+    try {
+      const result = await api.duplicateCampaign(id)
+      loadCampaigns()
+      alert(`Campaign duplicated! ${result.variants_copied} variants and ${result.rules_copied} rules copied.`)
     } catch (err) {
       alert(err.message)
     }
@@ -127,12 +137,21 @@ export default function Dashboard({ session }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                    title="Preview"
                   >
                     <ExternalLink size={18} />
                   </a>
                   <button
+                    onClick={() => handleDuplicate(campaign.id)}
+                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                    title="Duplicate"
+                  >
+                    <Copy size={18} />
+                  </button>
+                  <button
                     onClick={() => handleDelete(campaign.id)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    title="Delete"
                   >
                     <Trash2 size={18} />
                   </button>

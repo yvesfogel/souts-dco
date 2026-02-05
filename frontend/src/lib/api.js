@@ -42,6 +42,9 @@ export const api = {
   deleteCampaign: (id) => fetchWithAuth(`/campaigns/${id}`, {
     method: 'DELETE',
   }),
+  duplicateCampaign: (id) => fetchWithAuth(`/campaigns/${id}/duplicate`, {
+    method: 'POST',
+  }),
   
   // Variants
   createVariant: (campaignId, data) => fetchWithAuth(`/campaigns/${campaignId}/variants`, {
