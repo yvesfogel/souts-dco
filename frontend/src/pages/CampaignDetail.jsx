@@ -7,6 +7,7 @@ import RulesBuilder from '../components/RulesBuilder'
 import Analytics from '../components/Analytics'
 import ABTestConfig from '../components/ABTestConfig'
 import Scheduling from '../components/Scheduling'
+import EmbedCode from '../components/EmbedCode'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -413,6 +414,14 @@ export default function CampaignDetail() {
                   <p className="text-gray-500">Create at least one variant before adding rules.</p>
                 </div>
               )}
+            </div>
+
+            {/* Embed Code */}
+            <div>
+              <EmbedCode
+                campaignId={id}
+                baseUrl={window.location.origin}
+              />
             </div>
           </div>
         </div>
