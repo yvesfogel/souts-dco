@@ -8,6 +8,7 @@ import Analytics from '../components/Analytics'
 import ABTestConfig from '../components/ABTestConfig'
 import Scheduling from '../components/Scheduling'
 import EmbedCode from '../components/EmbedCode'
+import TemplateSelector from '../components/TemplateSelector'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -243,6 +244,15 @@ export default function CampaignDetail() {
 
             {/* Scheduling */}
             <Scheduling
+              campaign={campaign}
+              onUpdate={async (data) => {
+                await api.updateCampaign(id, data)
+                loadCampaign()
+              }}
+            />
+
+            {/* Template */}
+            <TemplateSelector
               campaign={campaign}
               onUpdate={async (data) => {
                 await api.updateCampaign(id, data)

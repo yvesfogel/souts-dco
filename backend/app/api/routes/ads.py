@@ -7,6 +7,7 @@ import hashlib
 from app.services.supabase import get_supabase_admin
 from app.services.decisioning import select_variant
 from app.services.signals import get_geo_signals, get_weather_signals, get_daypart_signals
+from app.templates.renderer import render_ad, list_templates
 
 router = APIRouter()
 
@@ -94,63 +95,23 @@ async def collect_signals(request: Request) -> dict:
     return signals
 
 
-def render_ad_html(variant: dict, campaign: dict) -> str:
-    """Render ad creative as HTML."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
-        .ad-container {{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            min-height: 250px;
-        }}
-        .ad-image {{ max-width: 100%; height: auto; margin-bottom: 15px; border-radius: 8px; }}
-        .ad-headline {{ font-size: 24px; font-weight: bold; margin-bottom: 10px; }}
-        .ad-body {{ font-size: 16px; margin-bottom: 15px; opacity: 0.9; }}
-        .ad-cta {{
-            display: inline-block;
-            padding: 12px 24px;
-            background: white;
-            color: #667eea;
-            text-decoration: none;
-            border-radius: 25px;
-            font-weight: bold;
-            transition: transform 0.2s;
-        }}
-        .ad-cta:hover {{ transform: scale(1.05); }}
-    </style>
-</head>
-<body>
-    <div class="ad-container">
-        {f'<img class="ad-image" src="{variant.get("image_url")}" alt="">' if variant.get("image_url") else ''}
-        <h1 class="ad-headline">{variant.get("headline", "")}</h1>
-        <p class="ad-body">{variant.get("body_text", "")}</p>
-        <a class="ad-cta" href="{variant.get("cta_url", "#")}" target="_blank">{variant.get("cta_text", "Learn More")}</a>
-    </div>
-    <script>
-        // Track impression
-        console.log('SOUTS DCO - Impression', {{
-            campaign: '{campaign.get("id")}',
-            variant: '{variant.get("id")}',
-        }});
-    </script>
-</body>
-</html>"""
+@router.get("/templates")
+async def get_templates():
+    """List available ad templates."""
+    return list_templates()
 
 
 @router.get("/{campaign_id}")
-async def serve_ad(campaign_id: str, request: Request, background_tasks: BackgroundTasks, format: str = "html", track: bool = True):
+async def serve_ad(
+    campaign_id: str, 
+    request: Request, 
+    background_tasks: BackgroundTasks, 
+    format: str = "html", 
+    track: bool = True,
+    width: int = None,
+    height: int = None,
+    template: str = None,
+):
     """
     Serve a personalized ad based on signals.
     
@@ -195,13 +156,14 @@ async def serve_ad(campaign_id: str, request: Request, background_tasks: Backgro
             "signals": signals,
         })
     
-    # Default: HTML
-    html = render_ad_html(variant, campaign)
+    # Default: HTML - use template from campaign settings or query param
+    selected_template = template or campaign.get("template", "default")
+    html = render_ad(variant, campaign, template=selected_template, width=width, height=height)
     return HTMLResponse(html)
 
 
 @router.get("/{campaign_id}/preview")
-async def preview_variant(campaign_id: str, variant_id: str):
+async def preview_variant(campaign_id: str, variant_id: str, template: str = None, width: int = None, height: int = None):
     """Preview a specific variant (for admin UI)."""
     supabase = get_supabase_admin()
     
@@ -213,7 +175,8 @@ async def preview_variant(campaign_id: str, variant_id: str):
     if not variant_result.data:
         raise HTTPException(status_code=404, detail="Variant not found")
     
-    html = render_ad_html(variant_result.data, campaign_result.data)
+    selected_template = template or campaign_result.data.get("template", "default")
+    html = render_ad(variant_result.data, campaign_result.data, template=selected_template, width=width, height=height)
     return HTMLResponse(html)
 
 
@@ -298,7 +261,8 @@ async def simulate_ad(campaign_id: str, request: Request):
             break
     
     # Generate HTML preview
-    html = render_ad_html(variant, campaign)
+    selected_template = campaign.get("template", "default")
+    html = render_ad(variant, campaign, template=selected_template)
     
     return {
         "campaign": campaign,
