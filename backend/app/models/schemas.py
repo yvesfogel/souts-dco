@@ -27,6 +27,7 @@ class CampaignCreate(BaseModel):
     description: Optional[str] = None
     template: str = "default"
     settings: Optional[dict] = None
+    ab_test_mode: str = "rules"  # 'rules', 'weights', 'off'
 
 
 class CampaignUpdate(BaseModel):
@@ -35,6 +36,7 @@ class CampaignUpdate(BaseModel):
     template: Optional[str] = None
     settings: Optional[dict] = None
     active: Optional[bool] = None
+    ab_test_mode: Optional[str] = None
 
 
 class Campaign(BaseModel):
@@ -58,6 +60,7 @@ class VariantCreate(BaseModel):
     cta_url: str
     image_url: Optional[str] = None
     is_default: bool = False
+    weight: int = 100  # Traffic weight for A/B testing (0-100)
     settings: Optional[dict] = None
 
 
@@ -69,6 +72,7 @@ class VariantUpdate(BaseModel):
     cta_url: Optional[str] = None
     image_url: Optional[str] = None
     is_default: Optional[bool] = None
+    weight: Optional[int] = None
     settings: Optional[dict] = None
 
 

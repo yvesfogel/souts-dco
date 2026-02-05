@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import SignalSimulator from '../components/SignalSimulator'
 import RulesBuilder from '../components/RulesBuilder'
 import Analytics from '../components/Analytics'
+import ABTestConfig from '../components/ABTestConfig'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -167,7 +168,7 @@ export default function CampaignDetail() {
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Settings */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-lg border border-gray-200 p-5 sticky top-24">
               <h3 className="font-semibold mb-4">Settings</h3>
               
@@ -223,6 +224,20 @@ export default function CampaignDetail() {
                 </div>
               </div>
             </div>
+
+            {/* A/B Testing */}
+            <ABTestConfig
+              campaign={campaign}
+              variants={campaign.variants || []}
+              onUpdateCampaign={async (data) => {
+                await api.updateCampaign(id, data)
+                loadCampaign()
+              }}
+              onUpdateVariant={async (variantId, data) => {
+                await api.updateVariant(id, variantId, data)
+                loadCampaign()
+              }}
+            />
           </div>
 
           {/* Main Content */}
