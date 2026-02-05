@@ -22,6 +22,9 @@ En Supabase Dashboard → SQL Editor, ejecutar EN ORDEN:
 
 -- 4. Luego Click Tracking
 -- Copiar contenido de: supabase/migrations/004_click_tracking.sql
+
+-- 5. Luego Component Pools
+-- Copiar contenido de: supabase/migrations/005_component_pools.sql
 ```
 
 ### 3. Crear Storage Bucket
@@ -198,6 +201,20 @@ npm run dev
 - Copiar campaña completa con variantes y rules
 - Nueva campaña empieza inactiva
 - **Probar**: Botón de copiar en el dashboard
+
+### ✅ Component Pools (Core DCO) ⭐
+- Define pools de componentes: headlines, body, CTA, images
+- Auto-genera todas las combinaciones posibles
+- Ejemplo: 3 headlines × 2 bodies × 2 CTAs = 12 variantes
+- Preview antes de generar
+- **Probar**: Sección "Component Pools" arriba de Variants
+
+### ✅ Variant Preview Grid
+- Ver todas las variantes lado a lado
+- Modos: grid y carousel
+- Múltiples tamaños de preview
+- Click para expandir
+- **Probar**: Panel "Variant Preview Grid" debajo de Variants
 
 ---
 
