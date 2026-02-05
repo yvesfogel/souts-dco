@@ -10,6 +10,7 @@ import ABTestConfig from '../components/ABTestConfig'
 import Scheduling from '../components/Scheduling'
 import EmbedCode from '../components/EmbedCode'
 import TemplateSelector from '../components/TemplateSelector'
+import AssetLibrary from '../components/AssetLibrary'
 
 export default function CampaignDetail() {
   const { id } = useParams()
@@ -417,6 +418,11 @@ export default function CampaignDetail() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Asset Library */}
+            <div>
+              <AssetLibrary campaignId={id} />
             </div>
 
             {/* Rules */}
