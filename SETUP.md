@@ -19,6 +19,9 @@ En Supabase Dashboard → SQL Editor, ejecutar EN ORDEN:
 
 -- 3. Luego Scheduling
 -- Copiar contenido de: supabase/migrations/003_scheduling.sql
+
+-- 4. Luego Click Tracking
+-- Copiar contenido de: supabase/migrations/004_click_tracking.sql
 ```
 
 ### 3. Crear Storage Bucket
@@ -168,11 +171,33 @@ npm run dev
 - `GET /ad/templates` → Listar templates disponibles
 - **Probar**: Copiar "Ad URL" de la campaña y abrir en browser
 
-### ✅ Asset Upload
-- Subir imágenes a Supabase Storage
-- Tipos: JPEG, PNG, GIF, WebP
-- Máximo 10MB
-- **Probar**: Funciona vía API (UI de upload pendiente)
+### ✅ Visual Ad Builder
+- Editor drag & drop para crear ads
+- Elementos: Text, Image, Button, Shape, Background
+- Panel de propiedades para styling
+- Múltiples tamaños de canvas (IAB standard)
+- Preview y export a JSON
+- **Probar**: Click "Ad Builder" en header de campaña
+
+### ✅ Asset Library UI
+- Drag & drop upload de imágenes
+- Vista grid y lista
+- Buscar/filtrar
+- Copy URL, eliminar
+- Preview de thumbnails
+- **Probar**: Sección "Asset Library" en la campaña
+
+### ✅ Click Tracking & CTR
+- Tracking automático de clicks en CTAs
+- CTR por variante y total
+- Analytics muestra: impressions, clicks, CTR
+- URLs de tracking transparentes
+- **Probar**: Ver sección Analytics después de algunos clicks
+
+### ✅ Duplicate Campaign
+- Copiar campaña completa con variantes y rules
+- Nueva campaña empieza inactiva
+- **Probar**: Botón de copiar en el dashboard
 
 ---
 
@@ -199,6 +224,23 @@ ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS ab_test_mode VARCHAR(20) DEFAULT 
 -- 003_scheduling.sql
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+
+-- 004_click_tracking.sql
+CREATE TABLE IF NOT EXISTS clicks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    variant_id UUID NOT NULL REFERENCES variants(id) ON DELETE CASCADE,
+    url TEXT,
+    ip_hash VARCHAR(64),
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_clicks_campaign_id ON clicks(campaign_id);
+ALTER TABLE clicks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service can insert clicks" ON clicks FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can view own clicks" ON clicks FOR SELECT USING (
+    EXISTS (SELECT 1 FROM campaigns WHERE campaigns.id = clicks.campaign_id AND campaigns.user_id = auth.uid())
+);
 ```
 
 ---
