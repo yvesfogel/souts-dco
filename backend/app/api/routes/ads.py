@@ -175,3 +175,81 @@ async def debug_signals(campaign_id: str, request: Request):
         "signals": signals,
         "selected_variant": variant,
     }
+
+
+@router.get("/{campaign_id}/simulate")
+async def simulate_ad(campaign_id: str, request: Request):
+    """
+    Simulate ad serving with custom signals.
+    Pass signals as query params prefixed with 'signal_', e.g.:
+    ?signal_weather_temp=35&signal_daypart=morning
+    """
+    supabase = get_supabase_admin()
+    
+    # Get campaign
+    campaign_result = supabase.table("campaigns").select("*").eq("id", campaign_id).single().execute()
+    
+    if not campaign_result.data:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    campaign = campaign_result.data
+    
+    # Build signals from query params
+    signals = {}
+    for key, value in request.query_params.items():
+        if key.startswith("signal_"):
+            signal_key = key[7:]  # Remove 'signal_' prefix
+            # Try to parse as number or boolean
+            if value.lower() == "true":
+                signals[signal_key] = True
+            elif value.lower() == "false":
+                signals[signal_key] = False
+            else:
+                try:
+                    signals[signal_key] = float(value) if "." in value else int(value)
+                except ValueError:
+                    signals[signal_key] = value
+    
+    # Select variant based on simulated signals
+    variant = await select_variant(campaign_id, signals)
+    
+    if not variant:
+        # Get default variant
+        default = supabase.table("variants").select("*").eq(
+            "campaign_id", campaign_id
+        ).eq("is_default", True).limit(1).execute()
+        
+        if default.data:
+            variant = default.data[0]
+        else:
+            # Just get first variant
+            first = supabase.table("variants").select("*").eq(
+                "campaign_id", campaign_id
+            ).limit(1).execute()
+            variant = first.data[0] if first.data else None
+    
+    if not variant:
+        raise HTTPException(status_code=404, detail="No variants found")
+    
+    # Find which rule matched (if any)
+    matched_rule = None
+    rules_result = supabase.table("rules").select("*").eq(
+        "campaign_id", campaign_id
+    ).eq("active", True).order("priority").execute()
+    
+    from app.services.decisioning import evaluate_rule
+    for rule in (rules_result.data or []):
+        if evaluate_rule(rule, signals):
+            matched_rule = rule.get("name")
+            break
+    
+    # Generate HTML preview
+    html = render_ad_html(variant, campaign)
+    
+    return {
+        "campaign": campaign,
+        "variant": variant,
+        "signals": signals,
+        "matched_rule": matched_rule,
+        "html": html,
+    }
